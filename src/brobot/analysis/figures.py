@@ -294,13 +294,32 @@ def figure_maps(
 
 
 def generate_all_figures(csv_path: str = "results/sweep.csv"):
-    """Generate all 4 paper figures plus map visualization from sweep results."""
+    """Generate all paper figures plus map visualization from sweep results."""
     df = pd.read_csv(csv_path)
     os.makedirs("figures", exist_ok=True)
 
+    map_names = sorted(df["map_name"].unique())
+
     figure_maps()
-    figure1_rmse_heatmaps(df)
+
+    for map_name in map_names:
+        figure1_rmse_heatmaps(
+            df, map_name=map_name,
+            output_path=f"figures/fig1_heatmaps_{map_name}.png",
+        )
+
     figure2_map_geometry(df)
-    figure3_ablation(df)
-    figure4_mpf_vs_mpfe(df)
+
+    for map_name in map_names:
+        figure3_ablation(
+            df, map_name=map_name,
+            output_path=f"figures/fig3_ablation_{map_name}.png",
+        )
+
+    for map_name in map_names:
+        figure4_mpf_vs_mpfe(
+            df, map_name=map_name,
+            output_path=f"figures/fig4_mpf_vs_mpfe_{map_name}.png",
+        )
+
     print("All figures generated.")
