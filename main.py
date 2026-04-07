@@ -61,7 +61,7 @@ def main():
     # Configure sweep
     if args.smoke:
         sigmas = [0.05, 0.2]
-        rates = [0.0, 0.15]
+        rates = [0.0, 0.2]
         maps = ["open"]
         methods = ["SIR", "MPF", "MPFE"]
         n_trials = 1

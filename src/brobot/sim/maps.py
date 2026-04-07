@@ -74,9 +74,53 @@ def corridor_map(size: int = 200, resolution: float = 0.05) -> OccupancyGrid:
     return OccupancyGrid(grid, resolution)
 
 
+def four_rooms_map(size: int = 200, resolution: float = 0.05) -> OccupancyGrid:
+    """Four identical rooms connected by narrow doorways.
+
+    Layout (200x200 grid = 10m x 10m world):
+    - Perimeter walls (2 cells thick)
+    - Vertical center wall at cols 98–101 (x ≈ 4.9–5.05m)
+    - Horizontal center wall at rows 98–101 (y ≈ 4.9–5.05m)
+    - Four doorways (15-cell = 0.75m gaps), one per wall segment:
+        - Vertical wall, bottom half: rows 42–56  (y ≈ 2.1–2.8m)
+        - Vertical wall, top half:    rows 143–157 (y ≈ 7.15–7.85m)
+        - Horizontal wall, left half: cols 42–56   (x ≈ 2.1–2.8m)
+        - Horizontal wall, right half: cols 143–157 (x ≈ 7.15–7.85m)
+
+    All four rooms are geometrically identical, creating global localization
+    ambiguity — the sensor returns look nearly the same in each room.
+    """
+    grid = np.zeros((size, size), dtype=np.int8)
+
+    # Perimeter walls (2 cells thick)
+    grid[0:2, :] = 1
+    grid[-2:, :] = 1
+    grid[:, 0:2] = 1
+    grid[:, -2:] = 1
+
+    wall_thickness = 4  # cols/rows 98-101
+
+    # Vertical center wall
+    grid[:, 98 : 98 + wall_thickness] = 1
+    # Doorway: bottom half — rows 42–56
+    grid[42:57, 98 : 98 + wall_thickness] = 0
+    # Doorway: top half — rows 143–157
+    grid[143:158, 98 : 98 + wall_thickness] = 0
+
+    # Horizontal center wall
+    grid[98 : 98 + wall_thickness, :] = 1
+    # Doorway: left half — cols 42–56
+    grid[98 : 98 + wall_thickness, 42:57] = 0
+    # Doorway: right half — cols 143–157
+    grid[98 : 98 + wall_thickness, 143:158] = 0
+
+    return OccupancyGrid(grid, resolution)
+
+
 MAP_REGISTRY = {
     "open": open_map,
     "corridor": corridor_map,
+    "four_rooms": four_rooms_map,
 }
 
 

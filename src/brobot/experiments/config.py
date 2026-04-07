@@ -30,9 +30,9 @@ METHOD_REGISTRY = {
     "MPFE": MPFE,
 }
 
-SIGMAS = [0.01, 0.05, 0.1, 0.2, 0.5]
-OUTLIER_RATES = [0.0, 0.05, 0.1, 0.15, 0.2, 0.3]
-MAPS = ["open", "corridor"]
+SIGMAS = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0]
+OUTLIER_RATES = [0.0, 0.1, 0.2, 0.3, 0.5]
+MAPS = ["open", "corridor", "four_rooms"]
 METHODS = list(METHOD_REGISTRY.keys())
 N_PARTICLES = 500
 T_STEPS = 200
@@ -53,7 +53,8 @@ def generate_sweep_configs(
     configs = []
     for sigma, r, map_name, method in product(sigmas, rates, maps, methods):
         for trial in range(n_trials):
-            seed = hash((base_seed, map_name, trial)) % (2**31)
+            map_idx = maps.index(map_name)
+            seed = (base_seed * 100_000 + map_idx * 10_000 + trial) % (2**31)
             configs.append(SimConfig(
                 map_name=map_name,
                 method=method,

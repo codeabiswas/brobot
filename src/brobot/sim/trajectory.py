@@ -51,6 +51,35 @@ def _waypoints_corridor() -> np.ndarray:
     ])
 
 
+def _waypoints_four_rooms() -> np.ndarray:
+    """Waypoints for the four-rooms map.
+
+    Navigates through all 4 rooms via the narrow doorways, making a full loop.
+    Doorway centers:
+      - Vertical wall, bottom: x≈4.95m, y≈2.45m  (connects room1 ↔ room2)
+      - Horizontal wall, right: x≈7.45m, y≈4.95m (connects room2 ↔ room4)
+      - Vertical wall, top:    x≈4.95m, y≈7.45m  (connects room4 ↔ room3)
+      - Horizontal wall, left: x≈2.45m, y≈4.95m  (connects room3 ↔ room1)
+    """
+    return np.array([
+        [1.5, 1.5],    # Room 1 (bottom-left)
+        [3.5, 1.5],    # Room 1, moving toward doorway
+        [4.7, 2.45],   # Approach bottom vertical doorway
+        [5.3, 2.45],   # Through into Room 2 (bottom-right)
+        [7.5, 1.5],    # Room 2 interior
+        [8.5, 3.5],    # Room 2 upper area
+        [7.45, 4.7],   # Approach right horizontal doorway
+        [7.45, 5.3],   # Through into Room 4 (top-right)
+        [8.5, 7.5],    # Room 4 interior
+        [5.3, 7.45],   # Approach top vertical doorway
+        [4.7, 7.45],   # Through into Room 3 (top-left)
+        [1.5, 8.5],    # Room 3 interior
+        [2.45, 5.3],   # Approach left horizontal doorway
+        [2.45, 4.7],   # Through back into Room 1
+        [1.5, 1.5],    # Back to start
+    ])
+
+
 def generate_trajectory(
     occ_map: OccupancyGrid,
     map_name: str,
@@ -72,6 +101,8 @@ def generate_trajectory(
         waypoints = _waypoints_open()
     elif map_name == "corridor":
         waypoints = _waypoints_corridor()
+    elif map_name == "four_rooms":
+        waypoints = _waypoints_four_rooms()
     else:
         raise ValueError(f"Unknown map: {map_name}")
 
