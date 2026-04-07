@@ -83,7 +83,7 @@ def figure1_rmse_heatmaps(
 def figure2_map_geometry(
     df: pd.DataFrame,
     sigma: float = 0.1,
-    r: float = 0.15,
+    r: float = 0.2,
     output_path: str = "figures/fig2_map_geometry.png",
 ):
     """Fig 2: Mean RMSE by map geometry.
@@ -94,17 +94,20 @@ def figure2_map_geometry(
     methods = ["SIR", "RA", "KLD", "MPF", "KLD_mut", "KLD_vpior", "MPFE"]
     sub = df[(df["sigma"] == sigma) & (df["r"] == r)]
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    map_names = sorted(df["map_name"].unique())
+    fig, ax = plt.subplots(figsize=(12, 5))
     x = np.arange(len(methods))
-    width = 0.35
+    n_maps = len(map_names)
+    width = 0.7 / n_maps
 
-    for i, map_name in enumerate(["open", "corridor"]):
+    for i, map_name in enumerate(map_names):
         msub = sub[sub["map_name"] == map_name]
         means = [msub[msub["method"] == m]["mean_rmse"].mean() for m in methods]
         stds = [msub[msub["method"] == m]["mean_rmse"].std() for m in methods]
-        ax.bar(x + i * width, means, width, yerr=stds, label=map_name, capsize=3)
+        offset = (i - (n_maps - 1) / 2) * width
+        ax.bar(x + offset, means, width, yerr=stds, label=map_name, capsize=3)
 
-    ax.set_xticks(x + width / 2)
+    ax.set_xticks(x)
     ax.set_xticklabels(methods)
     ax.set_ylabel("Mean RMSE (m)")
     ax.set_title(f"Mean RMSE by map geometry (σ={sigma}, r={r})")
@@ -173,7 +176,7 @@ def figure4_mpf_vs_mpfe(
     df: pd.DataFrame,
     sigma: float = 0.2,
     r: float = 0.3,
-    map_name: str = "corridor",
+    map_name: str = "four_rooms",
     output_path: str = "figures/fig4_mpf_vs_mpfe.png",
 ):
     """Fig 4: RMSE trajectory over 200 timesteps, MPF vs MPF-E.
@@ -187,7 +190,7 @@ def figure4_mpf_vs_mpfe(
     _ensure_dir(output_path)
 
     from brobot.sim.world import World
-    from brobot.experiments.config import METHOD_REGISTRY, N_TRIALS
+    from brobot.experiments.config import METHOD_REGISTRY, METHODS, MAPS, N_TRIALS
 
     fig, ax = plt.subplots(figsize=(12, 5))
     n_trials = N_TRIALS  # match the sweep (30)
@@ -195,8 +198,9 @@ def figure4_mpf_vs_mpfe(
     for method_name, color, label in [("MPF", "blue", "MPF"), ("MPFE", "red", "MPF-E")]:
         all_rmse = []
         for trial in range(n_trials):
-            # Same seed formula as generate_sweep_configs (base_seed=0)
-            seed = hash((0, map_name, trial)) % (2**31)
+            # Same deterministic seed formula as generate_sweep_configs (base_seed=0)
+            map_idx = MAPS.index(map_name)
+            seed = (0 * 100_000 + map_idx * 10_000 + trial) % (2**31)
             world = World(map_name=map_name, sigma=sigma, r=r, T=200, seed=seed)
             filter_cls = METHOD_REGISTRY[method_name]
             filt = filter_cls(
@@ -206,7 +210,8 @@ def figure4_mpf_vs_mpfe(
                 sigma=sigma,
                 beam_angles_arr=world.beam_angles_arr,
             )
-            filter_seed = hash((seed, method_name)) % (2**31)
+            method_idx = METHODS.index(method_name)
+            filter_seed = (seed * 100 + method_idx) % (2**31)
             result = filt.run(world, seed=filter_seed)
             all_rmse.append(result.rmse_per_step)
 
@@ -240,14 +245,18 @@ def figure_maps(
     """Visualize the two occupancy grid maps with a sample trajectory overlay."""
     _ensure_dir(output_path)
 
-    from brobot.sim.maps import open_map, corridor_map
+    from brobot.sim.maps import open_map, corridor_map, four_rooms_map
     from brobot.sim.trajectory import generate_trajectory
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
+    map_defs = [
+        ("Open room",   open_map,       "open"),
+        ("Corridor",    corridor_map,   "corridor"),
+        ("Four rooms",  four_rooms_map, "four_rooms"),
+    ]
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
 
-    for ax, (name, build_fn) in zip(axes, [("Open room", open_map), ("Corridor", corridor_map)]):
+    for ax, (name, build_fn, map_name) in zip(axes, map_defs):
         occ = build_fn()
-        map_name = "open" if "Open" in name else "corridor"
         gt_poses, _ = generate_trajectory(occ, map_name)
 
         # Draw occupancy grid: walls dark, free light

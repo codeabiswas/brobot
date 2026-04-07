@@ -35,7 +35,9 @@ def run_single(config: SimConfig) -> dict:
     )
 
     # Use a different seed for the filter's RNG (independent of world generation)
-    filter_seed = hash((config.seed, config.method)) % (2**31)
+    from brobot.experiments.config import METHODS
+    method_idx = METHODS.index(config.method)
+    filter_seed = (config.seed * 100 + method_idx) % (2**31)
     result = filt.run(world, seed=filter_seed)
 
     return {

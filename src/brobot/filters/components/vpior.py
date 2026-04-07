@@ -103,13 +103,18 @@ def compute_predictive_stats(
 def vpior_remove(
     observed: np.ndarray,
     mu_pred: np.ndarray,
+    var_pred: np.ndarray,
     threshold_factor: float = 6.66,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Remove outlier beams using the Vysochanskij-Petunin inequality.
 
-    Beam k is removed if: d_k > mu_z + 6.66*s_z  or  d_k < mu_z - 6.66*s_z
-    where mu_z, s_z are the mean and std of the 36 observed ranges.
-    Removed beams are replaced with their predictive mean.
+    Beam k is flagged if: |d_k - mu_pred_k| > 6.66 * sigma_pred_k
+    where mu_pred_k and sigma_pred_k are the per-beam predictive mean and std
+    from the particle set. Flagged beams are replaced with their predictive mean.
+
+    The VP inequality guarantees P(|X - mu| > lambda*sigma) <= 4/(9*lambda^2)
+    for any unimodal distribution. At lambda=6.66 this gives alpha=0.01.
+    Applied per-beam against the predictive distribution, not global scan stats.
 
     Parameters
     ----------
@@ -117,6 +122,8 @@ def vpior_remove(
         Observed beam ranges.
     mu_pred : ndarray (K,)
         Predictive mean per beam (replacement values).
+    var_pred : ndarray (K,)
+        Predictive variance per beam (sigma_k^2 from particle set + sigma^2).
     threshold_factor : float
         VP inequality factor (6.66 at alpha=0.01).
 
@@ -127,13 +134,8 @@ def vpior_remove(
     removed_mask : ndarray (K,) bool
         True where beams were removed.
     """
-    mu_z = np.mean(observed)
-    s_z = np.std(observed)
-
-    upper = mu_z + threshold_factor * s_z
-    lower = mu_z - threshold_factor * s_z
-
-    removed_mask = (observed > upper) | (observed < lower)
+    sigma_pred = np.sqrt(var_pred)
+    removed_mask = np.abs(observed - mu_pred) > threshold_factor * sigma_pred
     cleaned = observed.copy()
     cleaned[removed_mask] = mu_pred[removed_mask]
 

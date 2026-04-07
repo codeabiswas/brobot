@@ -56,23 +56,24 @@ class MPF(BaseFilter):
         # 1. Motion update
         self.particles = sample_motion_batch(self.particles, v, omega, rng)
 
-        # 2. VPIOR: outlier detection and beam removal
+        # 2. Raycast once for both VPIOR and weight update
+        expected = self.compute_expected_ranges()
+
+        # 3. VPIOR: outlier detection and beam removal
         obs_for_weights = observation
         if self.use_vpior:
-            expected_prev = self.compute_expected_ranges()
             mu_pred, var_pred = compute_predictive_stats(
-                self.weights, expected_prev, self.sigma
+                self.weights, expected, self.sigma
             )
 
             if detect_outlier_scan(mu_pred, var_pred, observation, self.sigma):
-                cleaned, removed_mask = vpior_remove(observation, mu_pred)
+                cleaned, removed_mask = vpior_remove(observation, mu_pred, var_pred)
                 obs_for_weights = cleaned
                 info["vpior_removed_mask"] = removed_mask
             else:
                 info["vpior_removed_mask"] = np.zeros(self.n_beams, dtype=bool)
 
-        # 3. Weight update
-        expected = self.compute_expected_ranges()
+        # 4. Weight update
         log_w = self.compute_log_weights(obs_for_weights, expected)
         log_w -= np.max(log_w)
         self.weights_prenorm = np.exp(log_w)
@@ -82,7 +83,7 @@ class MPF(BaseFilter):
         else:
             self.weights[:] = 1.0 / self.N
 
-        # 4. Resampling (with optional KLD adaptation)
+        # 5. Resampling (with optional KLD adaptation)
         if self.use_kld:
             n_new = kld_particle_count(self.particles)
             indices = systematic_resample(self.weights, rng)

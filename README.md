@@ -26,7 +26,7 @@ uv sync --extra dev
 
 ## Usage
 
-### Full parameter sweep (12,600 runs)
+### Full parameter sweep (18,900 runs)
 
 ```bash
 uv run python main.py
@@ -40,6 +40,7 @@ Options:
 --output PATH     Results CSV path (default: results/sweep.csv)
 --figures-only    Skip sweep, generate figures from existing CSV
 --smoke           Smoke test: 1 trial, reduced grid
+--repro-check     Run reproduction check only (SIR/RA/MPF on clean data)
 ```
 
 ### Tests
@@ -60,9 +61,9 @@ src/brobot/
 
 ## Parameter Sweep
 
-- Sensor noise σ: 0.01, 0.05, 0.1, 0.2, 0.5 m
-- Outlier rate r: 0%, 5%, 10%, 15%, 20%, 30%
-- Maps: open room, corridor
+- Sensor noise σ: 0.01, 0.05, 0.1, 0.2, 0.5, 1.0 m
+- Outlier rate r: 0%, 10%, 20%, 30%, 50%
+- Maps: open room, corridor, four rooms
 - 500 particles, 200 timesteps, 30 trials per configuration
 
 ## Research Questions

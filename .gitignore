@@ -32,3 +32,6 @@ uv.lock
 
 # Claude
 .claude
+
+# Pdfs
+./*.pdf
