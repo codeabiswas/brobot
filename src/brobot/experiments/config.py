@@ -32,7 +32,7 @@ METHOD_REGISTRY = {
 
 SIGMAS = [0.01, 0.05, 0.1, 0.2, 0.5, 1.0]
 OUTLIER_RATES = [0.0, 0.1, 0.2, 0.3, 0.5]
-MAPS = ["open", "corridor", "four_rooms"]
+MAPS = ["open", "corridor", "four_rooms", "snake"]
 METHODS = list(METHOD_REGISTRY.keys())
 N_PARTICLES = 500
 T_STEPS = 200

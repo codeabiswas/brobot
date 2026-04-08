@@ -80,6 +80,36 @@ def _waypoints_four_rooms() -> np.ndarray:
     ])
 
 
+def _waypoints_snake() -> np.ndarray:
+    """Waypoints for the snake map.
+
+    Navigates the zigzag corridors from bottom-left to top-right.
+    Grid: 4 horizontal walls at rows 41, 80, 119, 158 (3 cells thick).
+    Gaps alternate sides:
+      - Walls at rows 41, 119: gap on left  (cols 5–29,  x ≈ 0.25–1.45m)
+      - Walls at rows 80, 158: gap on right (cols 170–194, x ≈ 8.50–9.70m)
+
+    Five corridors (bottom to top):
+      Corridor 1: y ≈ 0.10–2.05m  (rows 2–40)
+      Corridor 2: y ≈ 2.20–4.00m  (rows 44–79)
+      Corridor 3: y ≈ 4.15–5.95m  (rows 83–118)
+      Corridor 4: y ≈ 6.10–7.90m  (rows 122–157)
+      Corridor 5: y ≈ 8.05–9.90m  (rows 161–197)
+    """
+    return np.array([
+        [9.0, 1.0],    # Start bottom-right, corridor 1
+        [0.85, 1.0],   # Back left toward gap (wall 41 gap on left)
+        [0.85, 3.0],   # Through left gap into corridor 2
+        [9.0, 3.0],    # Right across corridor 2
+        [9.0, 5.0],    # Through right gap (wall 80) into corridor 3
+        [0.85, 5.0],   # Left across corridor 3
+        [0.85, 7.0],   # Through left gap (wall 119) into corridor 4
+        [9.0, 7.0],    # Right across corridor 4
+        [9.0, 9.0],    # Through right gap (wall 158) into corridor 5
+        [9.0, 9.0],    # Finish top-right
+    ])
+
+
 def generate_trajectory(
     occ_map: OccupancyGrid,
     map_name: str,
@@ -103,6 +133,8 @@ def generate_trajectory(
         waypoints = _waypoints_corridor()
     elif map_name == "four_rooms":
         waypoints = _waypoints_four_rooms()
+    elif map_name == "snake":
+        waypoints = _waypoints_snake()
     else:
         raise ValueError(f"Unknown map: {map_name}")
 

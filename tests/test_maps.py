@@ -1,7 +1,7 @@
 """Tests for occupancy grid maps."""
 
 import numpy as np
-from brobot.sim.maps import open_map, corridor_map, four_rooms_map, OccupancyGrid
+from brobot.sim.maps import open_map, corridor_map, four_rooms_map, snake_map, OccupancyGrid
 
 
 def test_open_map_shape():
@@ -73,3 +73,38 @@ def test_four_rooms_interiors_free():
     assert m.is_free(7.5, 2.0)    # room 2 (bottom-right)
     assert m.is_free(2.0, 7.5)    # room 3 (top-left)
     assert m.is_free(7.5, 7.5)    # room 4 (top-right)
+
+
+def test_snake_map_shape():
+    m = snake_map()
+    assert m.grid.shape == (200, 200)
+    assert m.resolution == 0.05
+
+
+def test_snake_map_walls_exist():
+    m = snake_map()
+    # Horizontal walls at rows 41, 80, 119, 158 (outside gaps)
+    assert m.grid[42, 100] == 1  # wall 1, middle (no gap here)
+    assert m.grid[81, 100] == 1  # wall 2, middle
+    assert m.grid[120, 100] == 1  # wall 3, middle
+    assert m.grid[159, 100] == 1  # wall 4, middle
+
+
+def test_snake_map_gaps_open():
+    m = snake_map()
+    # Walls 1 & 3 (rows 41, 119): gap on left (cols 5-29)
+    assert m.grid[42, 15] == 0   # wall 1, left gap
+    assert m.grid[120, 15] == 0  # wall 3, left gap
+    # Walls 2 & 4 (rows 80, 158): gap on right (cols 170-194)
+    assert m.grid[81, 180] == 0  # wall 2, right gap
+    assert m.grid[159, 180] == 0  # wall 4, right gap
+
+
+def test_snake_map_corridors_free():
+    m = snake_map()
+    # Center of each corridor should be free
+    assert m.is_free(5.0, 1.0)   # corridor 1
+    assert m.is_free(5.0, 3.0)   # corridor 2
+    assert m.is_free(5.0, 5.0)   # corridor 3
+    assert m.is_free(5.0, 7.0)   # corridor 4
+    assert m.is_free(5.0, 9.0)   # corridor 5

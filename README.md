@@ -63,7 +63,7 @@ src/brobot/
 
 - Sensor noise σ: 0.01, 0.05, 0.1, 0.2, 0.5, 1.0 m
 - Outlier rate r: 0%, 10%, 20%, 30%, 50%
-- Maps: open room, corridor, four rooms
+- Maps: open room, corridor, four rooms, snake
 - 500 particles, 200 timesteps, 30 trials per configuration
 
 ## Research Questions
