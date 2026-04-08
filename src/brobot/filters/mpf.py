@@ -83,6 +83,10 @@ class MPF(BaseFilter):
         else:
             self.weights[:] = 1.0 / self.N
 
+        # Save entropy before resampling (weights are still non-uniform)
+        if self.entropy_mutation:
+            self._entropy = shannon_entropy(self.weights)
+
         # 5. Resampling (with optional KLD adaptation)
         if self.use_kld:
             n_new = kld_particle_count(self.particles)
@@ -109,7 +113,7 @@ class MPF(BaseFilter):
             best_particle = self.particles[best_idx]
 
             if self.entropy_mutation:
-                H = shannon_entropy(self.weights)
+                H = self._entropy
                 self.particles = tst_mutation_entropy(
                     self.particles, self.weights_prenorm, best_particle, H,
                 )
