@@ -117,10 +117,47 @@ def four_rooms_map(size: int = 200, resolution: float = 0.05) -> OccupancyGrid:
     return OccupancyGrid(grid, resolution)
 
 
+def snake_map(size: int = 200, resolution: float = 0.05) -> OccupancyGrid:
+    """Snake-like corridor winding from bottom-left to top-right.
+
+    Layout (200x200 grid = 10m x 10m world):
+    - Perimeter walls (2 cells thick)
+    - Five horizontal corridors (~36 cells / 1.8m wide each)
+    - Four horizontal dividing walls (3 cells thick) at rows 41, 80, 119, 158
+    - 25-cell (1.25m) gaps alternate sides:
+        - Walls 1 & 3 (rows 41, 119): gap on left  (cols 5–29)
+        - Walls 2 & 4 (rows 80, 158): gap on right (cols 170–194)
+    - Path snakes: bottom-left → right → up-right → left → up-left → … → top-right
+    """
+    grid = np.zeros((size, size), dtype=np.int8)
+
+    # Perimeter walls (2 cells thick)
+    grid[0:2, :] = 1
+    grid[-2:, :] = 1
+    grid[:, 0:2] = 1
+    grid[:, -2:] = 1
+
+    wall_thickness = 3
+    gap_width = 25  # cells
+
+    wall_rows = [41, 80, 119, 158]
+    for i, wr in enumerate(wall_rows):
+        grid[wr : wr + wall_thickness, :] = 1
+        if i % 2 == 0:
+            # Gap on left side
+            grid[wr : wr + wall_thickness, 5 : 5 + gap_width] = 0
+        else:
+            # Gap on right side
+            grid[wr : wr + wall_thickness, 170 : 170 + gap_width] = 0
+
+    return OccupancyGrid(grid, resolution)
+
+
 MAP_REGISTRY = {
     "open": open_map,
     "corridor": corridor_map,
     "four_rooms": four_rooms_map,
+    "snake": snake_map,
 }
 
 

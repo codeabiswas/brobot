@@ -245,17 +245,18 @@ def figure_maps(
     """Visualize the two occupancy grid maps with a sample trajectory overlay."""
     _ensure_dir(output_path)
 
-    from brobot.sim.maps import open_map, corridor_map, four_rooms_map
+    from brobot.sim.maps import open_map, corridor_map, four_rooms_map, snake_map
     from brobot.sim.trajectory import generate_trajectory
 
     map_defs = [
         ("Open room",   open_map,       "open"),
         ("Corridor",    corridor_map,   "corridor"),
         ("Four rooms",  four_rooms_map, "four_rooms"),
+        ("Snake",       snake_map,      "snake"),
     ]
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+    fig, axes = plt.subplots(2, 2, figsize=(12, 12))
 
-    for ax, (name, build_fn, map_name) in zip(axes, map_defs):
+    for ax, (name, build_fn, map_name) in zip(axes.flatten(), map_defs):
         occ = build_fn()
         gt_poses, _ = generate_trajectory(occ, map_name)
 
