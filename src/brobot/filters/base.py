@@ -108,7 +108,8 @@ class BaseFilter(ABC):
         Returns
         -------
         info : dict
-            Optional info (e.g., vpior_removed_mask for recall computation).
+            Optional info (e.g., vpior_beam_mask for recall computation,
+            vpior_particle_mask for the per-particle pruning diagnostic).
         """
 
     def run(self, world: World, seed: int = 0) -> FilterResult:
@@ -139,10 +140,13 @@ class BaseFilter(ABC):
             gt = world.gt_poses[t + 1]
             rmse_per_step[t] = np.sqrt((est[0] - gt[0])**2 + (est[1] - gt[1])**2)
 
-            # VPIOR recall tracking
-            if "vpior_removed_mask" in info:
+            # VPIOR recall tracking — measures whether the D1 + per-beam VP
+            # test correctly identifies the contaminated beams against ground
+            # truth. The per-particle pruning mask (vpior_particle_mask) has
+            # no ground-truth analogue and is not aggregated here.
+            if "vpior_beam_mask" in info:
                 has_vpior = True
-                removed = info["vpior_removed_mask"]
+                removed = info["vpior_beam_mask"]
                 outliers = world.outlier_mask[t]
                 total_outlier_beams += outliers.sum()
                 correctly_removed += (removed & outliers).sum()

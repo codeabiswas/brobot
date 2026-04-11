@@ -81,3 +81,35 @@ def sample_motion_batch(
     new_poses[:, 2] = (new_poses[:, 2] + np.pi) % (2 * np.pi) - np.pi
 
     return new_poses
+
+
+def predict_mean_batch(
+    poses: np.ndarray,
+    v: float,
+    omega: float,
+    dt: float = DT,
+) -> np.ndarray:
+    """Noiseless batch motion prediction (deterministic).
+
+    Computes E(x_t | x_{t-1}, u_t) — the expected next state without
+    process noise. Used by the RAPF for auxiliary weight computation.
+
+    Parameters
+    ----------
+    poses : ndarray (N, 3)
+        Current particle poses [px, py, theta].
+
+    Returns
+    -------
+    predicted : ndarray (N, 3)
+    """
+    ds = v * dt
+    dtheta = omega * dt
+    theta = poses[:, 2]
+
+    predicted = np.empty_like(poses)
+    predicted[:, 0] = poses[:, 0] + ds * np.cos(theta + dtheta / 2)
+    predicted[:, 1] = poses[:, 1] + ds * np.sin(theta + dtheta / 2)
+    predicted[:, 2] = (theta + dtheta + np.pi) % (2 * np.pi) - np.pi
+
+    return predicted
