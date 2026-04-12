@@ -32,6 +32,8 @@ class RAPF(BaseFilter):
         super().__init__(*args, **kwargs)
         self.W = W
         self.max_reject = max_reject
+        self._last_candidates_pending = None
+        self._last_candidates_values = None
 
     def step(
         self,
@@ -100,6 +102,8 @@ class RAPF(BaseFilter):
         # Batch rejection loop
         accepted = np.zeros(self.N, dtype=bool)
         new_particles = np.empty_like(self.particles)
+        last_candidates_pending = None
+        last_candidates_values = None
 
         for _attempt in range(self.max_reject):
             pending = np.where(~accepted)[0]
@@ -139,8 +143,7 @@ class RAPF(BaseFilter):
         # Force-accept remaining particles with their last drawn candidates
         if not np.all(accepted):
             remaining = np.where(~accepted)[0]
-            # Use last candidates if available for these indices
-            if 'last_candidates_pending' in dir():
+            if last_candidates_pending is not None:
                 for idx in remaining:
                     pos = np.where(last_candidates_pending == idx)[0]
                     if len(pos) > 0:

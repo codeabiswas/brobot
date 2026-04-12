@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from brobot.experiments.config import SimConfig, METHOD_REGISTRY
+from brobot.experiments.config import SimConfig, METHOD_REGISTRY, METHODS
 from brobot.filters.base import FilterResult
 from brobot.sim.world import World
 
@@ -35,7 +35,6 @@ def run_single(config: SimConfig) -> dict:
     )
 
     # Use a different seed for the filter's RNG (independent of world generation)
-    from brobot.experiments.config import METHODS
     method_idx = METHODS.index(config.method)
     filter_seed = (config.seed * 100 + method_idx) % (2**31)
     result = filt.run(world, seed=filter_seed)

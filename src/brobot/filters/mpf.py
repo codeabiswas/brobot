@@ -43,6 +43,7 @@ class MPF(BaseFilter):
         self.use_mutation = use_mutation
         self.entropy_mutation = entropy_mutation
         self.use_kld = use_kld
+        self._entropy = 0.0
 
     def step(
         self,

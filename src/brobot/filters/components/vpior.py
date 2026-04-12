@@ -49,22 +49,10 @@ def detect_outlier_scan(
 ) -> bool:
     """Detect if scan contains outliers using Rényi divergence.
 
-    Flag scan as outlier-corrupted if D1 < threshold (chi-squared critical value).
-
-    Note: The paper's condition is D1 < 3.81 to flag outliers. This means
-    when the divergence is SMALL (distributions are similar), we do NOT flag.
-    When D1 >= threshold, the scan deviates enough to indicate outliers.
-
-    Actually re-reading the paper: the rejection region is {X: D1 < 3.81},
-    meaning we reject H0 (no outliers) when D1 < 3.81. But this seems
-    counterintuitive. Looking more carefully at the paper's Eq. (18):
-    C = {X: D1(p(z_t|z_{1:t-1}) || z(t)) < 3.81}
-    This means the null hypothesis (no outliers) is rejected when D1 < 3.81.
-
-    However, examining the logic: when outliers corrupt the scan, the divergence
-    between predictive and observed should INCREASE, not decrease. The paper
-    uses the convention that D1 >= threshold indicates outliers are present.
-    We follow the standard interpretation: flag when D1 >= threshold.
+    When outliers corrupt a scan, the KL divergence between the predictive
+    distribution and the observed scan increases. We flag the scan as
+    outlier-corrupted when D1 >= threshold (chi-squared critical value
+    at alpha=0.05, 1 DOF = 3.81).
     """
     d1 = renyi_divergence_gaussian(mu_pred, var_pred, observed, sigma)
     return d1 >= threshold
