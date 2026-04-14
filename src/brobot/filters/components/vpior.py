@@ -49,22 +49,10 @@ def detect_outlier_scan(
 ) -> bool:
     """Detect if scan contains outliers using Rényi divergence.
 
-    Flag scan as outlier-corrupted if D1 < threshold (chi-squared critical value).
-
-    Note: The paper's condition is D1 < 3.81 to flag outliers. This means
-    when the divergence is SMALL (distributions are similar), we do NOT flag.
-    When D1 >= threshold, the scan deviates enough to indicate outliers.
-
-    Actually re-reading the paper: the rejection region is {X: D1 < 3.81},
-    meaning we reject H0 (no outliers) when D1 < 3.81. But this seems
-    counterintuitive. Looking more carefully at the paper's Eq. (18):
-    C = {X: D1(p(z_t|z_{1:t-1}) || z(t)) < 3.81}
-    This means the null hypothesis (no outliers) is rejected when D1 < 3.81.
-
-    However, examining the logic: when outliers corrupt the scan, the divergence
-    between predictive and observed should INCREASE, not decrease. The paper
-    uses the convention that D1 >= threshold indicates outliers are present.
-    We follow the standard interpretation: flag when D1 >= threshold.
+    When outliers corrupt a scan, the KL divergence between the predictive
+    distribution and the observed scan increases. We flag the scan as
+    outlier-corrupted when D1 >= threshold (chi-squared critical value
+    at alpha=0.05, 1 DOF = 3.81).
     """
     d1 = renyi_divergence_gaussian(mu_pred, var_pred, observed, sigma)
     return d1 >= threshold
@@ -100,43 +88,79 @@ def compute_predictive_stats(
     return mu_pred, var_pred
 
 
-def vpior_remove(
-    observed: np.ndarray,
-    mu_pred: np.ndarray,
-    var_pred: np.ndarray,
+def vpior_remove_particles(
+    particles: np.ndarray,
+    rng: np.random.Generator,
     threshold_factor: float = 6.66,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Remove outlier beams using the Vysochanskij-Petunin inequality.
+    """Per-axis VP pruning of the particle set (paper Algorithm 1 outlier step).
 
-    Beam k is flagged if: |d_k - mu_pred_k| > 6.66 * sigma_pred_k
-    where mu_pred_k and sigma_pred_k are the per-beam predictive mean and std
-    from the particle set. Flagged beams are replaced with their predictive mean.
+    For each pose dimension, flag particles whose value lies more than
+    ``threshold_factor * sigma_axis`` from the axis mean. This is the
+    Vysochanskij-Petunin bound at alpha=0.01 (factor 6.66) generalized to
+    each pose axis independently — the closest 3-D analogue to the paper's
+    1-D `[TH_L, TH_U]` rejection region.
 
-    The VP inequality guarantees P(|X - mu| > lambda*sigma) <= 4/(9*lambda^2)
-    for any unimodal distribution. At lambda=6.66 this gives alpha=0.01.
-    Applied per-beam against the predictive distribution, not global scan stats.
+    Theta uses circular statistics: the mean is `atan2(<sin>, <cos>)` and
+    the per-particle deviation is wrapped into `[-pi, pi]` before being
+    compared with `threshold_factor * sigma_theta`, so the bound straddles
+    the wrap-around correctly.
+
+    Removed particles are replaced by uniform-with-replacement draws from
+    the surviving subset (the cloud is equal-weight by the time this runs,
+    so no weighted resample is needed).
 
     Parameters
     ----------
-    observed : ndarray (K,)
-        Observed beam ranges.
-    mu_pred : ndarray (K,)
-        Predictive mean per beam (replacement values).
-    var_pred : ndarray (K,)
-        Predictive variance per beam (sigma_k^2 from particle set + sigma^2).
+    particles : ndarray (N, 3)
+        Pose particles ``[x, y, theta]``.
+    rng : np.random.Generator
+        RNG for the survivor draw.
     threshold_factor : float
         VP inequality factor (6.66 at alpha=0.01).
 
     Returns
     -------
-    cleaned : ndarray (K,)
-        Cleaned observation (outlier beams replaced with mu_pred).
-    removed_mask : ndarray (K,) bool
-        True where beams were removed.
+    cleaned : ndarray (N, 3)
+        Particle cloud with outliers replaced by survivor draws.
+    removed_mask : ndarray (N,) bool
+        True at indices that were pruned.
     """
-    sigma_pred = np.sqrt(var_pred)
-    removed_mask = np.abs(observed - mu_pred) > threshold_factor * sigma_pred
-    cleaned = observed.copy()
-    cleaned[removed_mask] = mu_pred[removed_mask]
+    n = particles.shape[0]
+    if n <= 1:
+        return particles, np.zeros(n, dtype=bool)
 
-    return cleaned, removed_mask
+    x = particles[:, 0]
+    y = particles[:, 1]
+    theta = particles[:, 2]
+
+    mu_x = x.mean()
+    mu_y = y.mean()
+    sigma_x = x.std()
+    sigma_y = y.std()
+
+    mu_theta = np.arctan2(np.sin(theta).mean(), np.cos(theta).mean())
+    dtheta = (theta - mu_theta + np.pi) % (2 * np.pi) - np.pi
+    sigma_theta = np.sqrt(np.mean(dtheta ** 2))
+
+    eps = 1e-12
+    removed = (
+        (np.abs(x - mu_x) > threshold_factor * (sigma_x + eps))
+        | (np.abs(y - mu_y) > threshold_factor * (sigma_y + eps))
+        | (np.abs(dtheta) > threshold_factor * (sigma_theta + eps))
+    )
+
+    n_removed = int(removed.sum())
+    if n_removed == 0:
+        return particles, removed
+
+    survivors = np.where(~removed)[0]
+    if survivors.size == 0:
+        # Degenerate: every particle is its own outlier. Leave the cloud
+        # untouched rather than collapse it.
+        return particles, np.zeros(n, dtype=bool)
+
+    cleaned = particles.copy()
+    replacements = rng.choice(survivors, size=n_removed, replace=True)
+    cleaned[removed] = particles[replacements]
+    return cleaned, removed

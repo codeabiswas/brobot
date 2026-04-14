@@ -17,6 +17,7 @@ venv/
 # Results and outputs
 results/
 figures/
+figures-old/
 
 # IDE
 .vscode/

@@ -1,11 +1,15 @@
-"""KLD-AMCL: Adaptive Monte Carlo Localization via KLD-sampling."""
+"""KLD-AMCL: Adaptive Monte Carlo Localization via KLD-sampling.
+
+Implements the canonical incremental KLD_Sampling_MCL of Fox (2003) / Thrun
+et al. (2005), Table 8.4. All the heavy lifting lives in
+``kld_adaptive_sample``; this class is a thin wrapper that forwards state and
+normalizes the returned importance weights.
+"""
 
 import numpy as np
 
 from brobot.filters.base import BaseFilter
-from brobot.filters.components.resampling import systematic_resample
-from brobot.filters.components.kld_sampling import kld_particle_count
-from brobot.sim.motion import sample_motion_batch
+from brobot.filters.components.kld_sampling import kld_adaptive_sample
 
 
 class KLDAMCL(BaseFilter):
@@ -20,34 +24,33 @@ class KLDAMCL(BaseFilter):
     ) -> dict:
         v, omega = control
 
-        # 1. Motion update
-        self.particles = sample_motion_batch(self.particles, v, omega, rng)
+        new_particles, new_log_w = kld_adaptive_sample(
+            self.particles,
+            self.weights,
+            v,
+            omega,
+            observation,
+            self.occ_map,
+            self.resolution,
+            self.sigma,
+            self.d_max,
+            self.beam_angles,
+            rng,
+        )
 
-        # 2. Weight update
-        expected = self.compute_expected_ranges()
-        log_w = self.compute_log_weights(observation, expected)
-        log_w -= np.max(log_w)
-        self.weights_prenorm = np.exp(log_w)
-        w_sum = self.weights_prenorm.sum()
+        # Normalize the returned log-likelihoods (log-sum-exp for stability).
+        log_w = new_log_w - np.max(new_log_w)
+        w = np.exp(log_w)
+        w_sum = w.sum()
         if w_sum > 0:
-            self.weights = self.weights_prenorm / w_sum
+            w = w / w_sum
         else:
-            self.weights[:] = 1.0 / self.N
+            w = np.ones_like(w) / len(w)
 
-        # 3. KLD-adaptive resampling
-        n_new = kld_particle_count(self.particles)
-        indices = systematic_resample(self.weights, rng)
-
-        # Resize particle set
-        if n_new != self.N:
-            # Sample n_new particles from resampled set
-            selected = rng.choice(indices, size=n_new, replace=True)
-            self.particles = self.particles[selected]
-            self.N = n_new
-            self.weights = np.ones(n_new) / n_new
-            self.weights_prenorm = np.zeros(n_new)
-        else:
-            self.particles = self.particles[indices]
-            self.weights[:] = 1.0 / self.N
+        self.particles = new_particles
+        self.weights = w
+        # Kept for interface consistency with MPF's mutation path.
+        self.weights_prenorm = np.exp(log_w)
+        self.N = len(new_particles)
 
         return {}
