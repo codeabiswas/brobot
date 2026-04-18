@@ -9,7 +9,7 @@ Implements and compares 7 particle filter variants on simulated 2D occupancy gri
 | Key | Method | Description |
 |-----|--------|-------------|
 | `SIR` | SIR-PF | Standard Sequential Importance Resampling |
-| `RA` | RA-PF | SIR + kernel smoothing (Silverman bandwidth) |
+| `RA` | RA-PF | 3-stage: auxiliary weights, kernel regularization, rejection resampling (Liu et al. 2011) |
 | `KLD` | KLD-AMCL | Adaptive particle count via KLD-sampling [50–500] |
 | `MPF` | MPF | Rényi divergence outlier detection + VPIOR beam removal + TST mutation |
 | `KLD_mut` | KLD + Mutation | KLD-AMCL + TST mutation only |
