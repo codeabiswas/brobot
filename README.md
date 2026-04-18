@@ -1,6 +1,6 @@
 # Brobot
 
-Monte Carlo Localization variant benchmarking for EECE 5550 — Mobile Robotics (Spring 2026).
+Monte Carlo Localization variant benchmarking for EECE 5550 - Mobile Robotics (Spring 2026).
 
 Implements and compares 7 particle filter variants on simulated 2D occupancy grid environments with noisy LiDAR, based on [Mohseni et al. (2024)](https://doi.org/10.1016/j.engappai.2024.107897).
 
@@ -26,7 +26,7 @@ uv sync --extra dev
 
 ## Usage
 
-### Full parameter sweep (18,900 runs)
+### Full parameter sweep (25,200 runs)
 
 ```bash
 uv run python main.py
@@ -76,10 +76,11 @@ src/brobot/
 ## Output
 
 - `results/sweep.csv` — full sweep results
-- `figures/fig1_heatmaps.png` — RMSE heatmaps over (σ, r) for all methods (Q1)
+- `figures/maps.png` — occupancy grids with sample trajectories for all 4 maps
+- `figures/fig1_heatmaps_{map}.png` — RMSE heatmaps over (σ, r) for all methods, per map (Q1)
 - `figures/fig2_map_geometry.png` — RMSE by map geometry (Q2)
-- `figures/fig3_ablation.png` — Ablation decomposition with marginal deltas (Q3)
-- `figures/fig4_mpf_vs_mpfe.png` — RMSE trajectory, MPF vs MPF-E (Q4)
+- `figures/fig3_ablation_{map}.png` — ablation decomposition with marginal deltas, per map (Q3)
+- `figures/fig4_mpf_vs_mpfe_{map}.png` — RMSE trajectory, MPF vs MPF-E, per map (Q4)
 
 ## Authors
 

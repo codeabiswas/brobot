@@ -127,7 +127,7 @@ def snake_map(size: int = 200, resolution: float = 0.05) -> OccupancyGrid:
     - 25-cell (1.25m) gaps alternate sides:
         - Walls 1 & 3 (rows 41, 119): gap on left  (cols 5–29)
         - Walls 2 & 4 (rows 80, 158): gap on right (cols 170–194)
-    - Path snakes: bottom-left → right → up-right → left → up-left → … → top-right
+    - Path snakes: bottom-left → right → up-right → left → up-left → ... → top-right
     """
     grid = np.zeros((size, size), dtype=np.int8)
 

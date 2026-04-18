@@ -32,9 +32,11 @@ def compute_kld_threshold(
     if k <= 1:
         return 0.0
     z = norm.ppf(1 - delta)
-    return (k - 1) / (2 * eps) * (
-        1 - 2 / (9 * (k - 1)) + np.sqrt(2 / (9 * (k - 1))) * z
-    ) ** 3
+    return (
+        (k - 1)
+        / (2 * eps)
+        * (1 - 2 / (9 * (k - 1)) + np.sqrt(2 / (9 * (k - 1))) * z) ** 3
+    )
 
 
 def kld_adaptive_sample(
@@ -131,7 +133,11 @@ def kld_adaptive_sample(
         # Batch motion + raycast + log-likelihood
         new_chunk = sample_motion_batch(ancestors, v, omega, rng)
         expected = batch_raycast(
-            new_chunk, beam_angles, occ_map, resolution, d_max,
+            new_chunk,
+            beam_angles,
+            occ_map,
+            resolution,
+            d_max,
         )
         log_w_chunk = log_likelihood(observation, expected, sigma)
 
@@ -161,31 +167,3 @@ def kld_adaptive_sample(
             break
 
     return np.asarray(particles_out), np.asarray(log_w_out)
-
-
-def kld_particle_count(
-    particles: np.ndarray,
-    bin_sizes: tuple[float, float, float] = (0.5, 0.5, np.deg2rad(10)),
-    eps: float = 0.05,
-    delta: float = 0.01,
-    n_min: int = 50,
-    n_max: int = 500,
-) -> int:
-    """Legacy batch KLD bound given a fully-generated particle set.
-
-    Kept for backward compatibility; the canonical incremental algorithm lives
-    in ``kld_adaptive_sample`` and should be preferred for new code.
-    """
-    bins_x = np.floor(particles[:, 0] / bin_sizes[0]).astype(int)
-    bins_y = np.floor(particles[:, 1] / bin_sizes[1]).astype(int)
-    theta_wrapped = particles[:, 2] % (2 * np.pi)
-    bins_t = np.floor(theta_wrapped / bin_sizes[2]).astype(int)
-
-    bin_ids = np.column_stack([bins_x, bins_y, bins_t])
-    k = len(np.unique(bin_ids, axis=0))
-
-    if k <= 1:
-        return n_min
-
-    n_kld = compute_kld_threshold(k, eps, delta)
-    return int(np.clip(n_kld, n_min, n_max))
